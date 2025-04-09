@@ -1,4 +1,4 @@
-[[functions]]
+[functions]
   handler = "functions/telegram.js"
   function = "handleTelegramMessage"
   path = "/webhook"
