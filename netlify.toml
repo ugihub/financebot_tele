@@ -1,0 +1,8 @@
+[[functions]]
+  handler = "functions/telegram.js"
+  function = "handleTelegramMessage"
+  path = "/webhook"
+
+[build]
+  functions = "functions"
+  command = "npm install && npm start" # Jika perlu menjalankan server
