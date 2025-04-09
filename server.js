@@ -4,7 +4,7 @@ const axios = require('axios');
 
 // Konfigurasi Bot Telegram
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: false });
+const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true, cancelRequestOnRateLimit: true });
 
 // Konfigurasi Alpha Vantage
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
