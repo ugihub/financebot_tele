@@ -2,50 +2,48 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 
-// Konfigurasi Bot Telegram
+// Konfigurasi Bot
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true, cancelRequestOnRateLimit: true });
+const bot = new TelegramBot(TELEGRAM_TOKEN, {
+    polling: true,
+    cancelRequestOnRateLimit: true,
+    webHook: {
+        maxConnections: 40,
+        allowedUpdates: ['message']
+    }
+});
 
-// Konfigurasi Alpha Vantage
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+// Handler /start
+bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id,
+        "Halo! Bot Informasi Saham AS.\n" +
+        "Ketik simbol saham AS (contoh: AAPL, TSLA, MSFT)"
+    );
+});
 
-// Validasi simbol saham AS
+// Handler pesan
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text?.trim().toUpperCase() || '';
+
+    if (!isValidUSStockSymbol(text)) {
+        return bot.sendMessage(chatId, "⚠️ Format simbol salah");
+    }
+
+    try {
+        const data = await getStockInfo(text);
+        bot.sendMessage(chatId, data, { parse_mode: 'MarkdownV2' });
+    } catch (error) {
+        bot.sendMessage(chatId, `⚠️ Error: ${error.message}`);
+    }
+});
+
+// Validasi simbol
 function isValidUSStockSymbol(symbol) {
     return /^[A-Z]{3,5}$/.test(symbol);
 }
 
-// Fungsi handler pesan
-async function handleTelegramMessage(req, res) {
-    const chatId = req.body.message.chat.id;
-    const text = req.body.message.text?.trim().toUpperCase() || '';
-
-    try {
-        if (!isValidUSStockSymbol(text)) {
-            return bot.sendMessage(chatId,
-                "⚠️ Format simbol salah. Contoh: AAPL, TSLA, MSFT"
-            );
-        }
-
-        const stockData = await getStockInfo(text);
-        bot.sendMessage(chatId, stockData, { parse_mode: 'Markdown' });
-        res.status(200).send('OK');
-
-    } catch (error) {
-        bot.sendMessage(chatId, `⚠️ Error: ${error.message}`);
-        res.status(200).send('OK'); // Harus merespons 200 untuk Telegram
-    }
-}
-
-// Handler untuk /start
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId,
-        "Halo! Bot Informasi Saham AS.\n" +
-        "Ketik simbol saham AS (contoh: AAPL, TSLA, MSFT) untuk mendapatkan informasi terkini."
-    );
-});
-
-// Fungsi untuk ambil data
+// Ambil data saham
 async function getStockInfo(symbol) {
     const endpoint = 'https://www.alphavantage.co/query';
     const params = {
@@ -67,6 +65,7 @@ async function getStockInfo(symbol) {
             throw new Error('Data saham tidak tersedia');
         }
 
+        // Format pesan sesuai contoh
         return `
 **INFORMASI SAHAM US - ${symbol}**
 
@@ -83,4 +82,5 @@ async function getStockInfo(symbol) {
     }
 }
 
-module.exports = { handleTelegramMessage };
+// Mulai polling
+bot.startPolling();
